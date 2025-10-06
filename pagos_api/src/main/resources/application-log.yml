@@ -1,0 +1,12 @@
+logging:
+  level:
+    com.poli.arq.software.catalogo_api.security: DEBUG
+    org.springframework.security: DEBUG
+    com.poli.arq.software.catalogo_api: DEBUG
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect

@@ -1,0 +1,831 @@
+openapi: 3.0.3
+info:
+  title: API E-commerce - Microservicios
+  description: >
+    API Gateway que redirige peticiones a microservicios de Catálogo, Pedidos,
+    Pagos, Inventario, Envíos y Notificaciones.  
+    Todas las peticiones requieren autenticación vía JWT (Bearer Token).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/
+    description: API Gateway principal
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indica si la operación fue exitosa o no
+          example: false
+        error:
+          type: string
+          description: Indica la razón o motivo por la cual falló la petición.
+          example: Solicitud inválida
+        timestamp:
+          type: string
+          description: Hora y fecha del evento en formato yyyy-MM-ddTHH:mm:ss
+          format: date-time
+    success:
+      type: object
+    Id_Producto:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+    Producto:
+      type: object
+      properties:
+        nombre:
+          type: string
+          example: Camiseta Negra
+        descripcion:
+          type: string
+          example: Camiseta 100% algodón
+        precio:
+          type: number
+          format: float
+          example: 45000
+        stock:
+          type: integer
+          example: 120
+        categoria:
+          type: string
+          example: Ropa
+    Resena_Producto:
+      type: object
+      properties:
+        id_usuario:
+          type: number
+          format: integer
+          example: 456
+        calificacion:
+          type: number
+          format: float
+          example: 4.5
+        comentario:
+          type: string
+          example: Es un excelente producto y lo recomiendo mucho, pero deberían mejorar un poco las costuras.
+    Contenido_Pedido:
+      type: object
+      properties:
+        producto_id:
+          type: number
+          format: integer
+          example: 789
+        cantidad:
+          type: number
+          format: integer
+          example: 2
+        precio_unitario:
+          type: number
+          format: float
+          example: 45000
+    Pedido_Request:
+      type: object
+      properties:
+        id_usuario:
+          type: string
+          example: 456
+        productos:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: '#/components/schemas/Contenido_Pedido'
+    Pedido_Response:
+      type: object
+      properties:
+        id_pedido: 
+          type: number
+          format: integer
+          example: 987
+        id_usuario: 
+          type: number
+          format: integer
+          example: 456
+        productos:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: '#/components/schemas/Contenido_Pedido'
+        total: 
+          type: number
+          format: float
+          example: 90000
+        fecha_creacion:
+          type: string
+          format: date-time
+          example: "2025-10-02T18:45:00Z"
+    Pedido_Response_Pendiente:
+      type: object
+      properties:
+        estado: 
+          type: string
+          example: pendiente
+    Pedido_Response_Cancelado:
+      type: object
+      properties:
+        estado: 
+          type: string
+          example: cancelado
+    Pago_Tarjeta_Request:
+      type: object
+      properties:
+        id_pedido:
+          type: number
+          format: integer
+          example: 987
+        id_usuario:
+          type: number
+          format: integer
+          example: 321
+        monto:
+          type: number
+          format: integer
+          example: 90000
+        metodo:
+          type: string
+          example: tarjeta_credito
+    Inventario:
+      type: object
+      properties:
+        stock_disponible:
+          type: number
+          format: integer
+          example: 120
+        reservado:
+          type: number
+          format: integer
+          example: 10
+        ubicaciones:
+          type: array
+          example:
+            - bodega: principal
+              cantidad: 100
+            - bodega: secundaria
+              cantidad: 20
+    Envios_Request:
+      type: object
+      properties:
+        id_pedido:
+          type: number
+          format: integer
+          example: 987
+        direccion:
+          type: string
+          example: "Calle 123 # 45 - 67, Bogotá"
+        empresa:
+          type: string
+          example: Servientrega
+    Envios_Response:
+      type: object
+      properties:
+        id_envio:
+          type: number
+          format: integer
+          example: 555
+        id_pedido:
+          type: number
+          format: integer
+          example: 987
+        direccion:
+          type: string
+          example: "Calle 123 # 45 - 67, Bogotá"
+        estado:
+          type: string
+          enum: [en_transito, entregado, regresado, cancelado]
+          example: en_transito
+        fecha_estimada_entrega:
+          type: string
+          format: date-time
+          example: "2025-10-15"
+        empresa:
+          type: string
+          example: Servientrega
+    Notificacion_Request:
+      type: object
+      properties:
+        id_usuario:
+          type: number
+          format: integer
+          example: 456
+        medio:
+          type: string
+          enum: [email, sms, whatsapp]
+          example: email
+        mensaje:
+          type: string
+          example: "Tu pedido #987 ha sido confirmado"
+    Notificacion_Response:
+      type: object
+      properties:
+        id_notificacion:
+          type: number
+          format: integer
+          example: 222
+        id_usuario:
+          type: number
+          format: integer
+          example: 456
+        medio:
+          type: string
+          enum: [email, sms, whatsapp]
+          example: email
+        mensaje:
+          type: string
+          example: "Tu pedido #987 ha sido confirmado"
+        enviado:
+          type: boolean
+          example: true
+        fecha_hora_envio:
+          type: string
+          format: date-time
+          example: "2025-10-02T18:45:00Z"
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Catálogo de productos
+    description: Operaciones relacionadas con los productos
+  - name: Pedidos
+    description: Gestión de pedidos de clientes
+  - name: Pagos
+    description: Procesamiento de pagos de pedidos
+  - name: Inventario
+    description: Control de existencias y movimientos de productos
+  - name: Envíos
+    description: Gestión de envíos de pedidos
+  - name: Notificaciones
+    description: Envío y consulta de notificaciones
+
+paths:
+  # --- CATALOGO ---
+  /api/productos:
+    get:
+      tags: [Catálogo de productos]
+      summary: Listar todos productos
+      responses:
+        '200':
+          description: Lista de todos los productos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                  - $ref: '#/components/schemas/Id_Producto'
+                  - $ref: '#/components/schemas/Producto'
+    post:
+      tags: [Catálogo de productos]
+      summary: Crear producto (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Producto'
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/productos/{id}:
+    get:
+      tags: [Catálogo de productos]
+      summary: Obtener detalle de producto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Detalle del producto
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Id_Producto'
+                  - $ref: '#/components/schemas/Producto'
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags: [Catálogo de productos]
+      summary: Actualizar un producto (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+                allOf: 
+                  - $ref: '#/components/schemas/Id_Producto'
+                  - $ref: '#/components/schemas/Producto'
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                allOf: 
+                  - $ref: '#/components/schemas/Id_Producto'
+                  - $ref: '#/components/schemas/Producto'
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags: [Catálogo de productos]
+      summary: Eliminar un producto (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Producto eliminado
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/productos/{id}/resenas:
+    post:
+      tags: [Catálogo de productos]
+      summary: Enviar la reseña de un producto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Resena_Producto'
+      responses:
+        '201':
+          description: Reseña creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resena_Producto'
+        '400':
+          description: Solicitud incorrecta
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  
+  # --- PEDIDOS ---
+  /api/pedidos:
+    get:
+      tags: [Pedidos]
+      summary: Listar pedidos por cliente
+      parameters:
+        - name: id_usuario
+          in: query
+          required: true
+          schema: {type: integer}
+      responses:
+        '200':
+          description: Lista de pedidos por usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/Pedido_Response'
+                    - $ref: '#/components/schemas/Pedido_Response_Pendiente'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags: [Pedidos]
+      summary: Crear pedido
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pedido_Request'
+      responses:
+        '201':
+          description: Pedido creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pedido_Response'
+                  - $ref: '#/components/schemas/Pedido_Response_Pendiente'
+
+  /api/pedidos/{id}:
+    get:
+      tags: [Pedidos]
+      summary: Obtener detalle de pedido
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Detalle del pedido
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pedido_Response'
+                  - $ref: '#/components/schemas/Pedido_Response_Pendiente'
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/pedidos/{id}/cancelar:
+    put:
+      tags: [Pedidos]
+      summary: Solicitar cancelar un pedido
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pedido_Request'
+      responses:
+        '200':
+          description: Detalle del pedido
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pedido_Response'
+                  - $ref: '#/components/schemas/Pedido_Response_Cancelado'
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  # --- PAGOS ---
+  /api/pagos:
+    post:
+      tags: [Pagos]
+      summary: Iniciar pago
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pago_Tarjeta_Request'
+      responses:
+        '201':
+          description: Pago iniciado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pago_Tarjeta_Request'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "procesando"
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/pagos/{id}:
+    get:
+      tags: [Pagos]
+      summary: Detalle de pago
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: id_usuario
+          in: header
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Detalle del pago
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pago_Tarjeta_Request'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "aprobado"
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/pagos/{id}/reembolsar:
+    put:
+      tags: [Pagos]
+      summary: Reembolsar pago
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Pago_Tarjeta_Request'
+                - type: object
+                  properties:
+                    status:
+                      type: string
+                      example: "reembolsar"
+      responses:
+        '200':
+          description: Reembolso del pago
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pago_Tarjeta_Request'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "reembolsando"
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # --- INVENTARIO ---
+  /api/inventario/productos/{id}:
+    get:
+      tags: [Inventario]
+      summary: Consultar stock de producto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Stock de producto
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Id_Producto'
+                  - $ref: '#/components/schemas/Inventario'
+    put:
+      tags: [Inventario]
+      summary: Actualizar stock del producto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Inventario'
+                - type: object
+                  properties:
+                    status:
+                      type: string
+                      example: "reembolsar"
+      responses:
+        '200':
+          description: Detalle del pago
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Inventario'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "reembolsando"
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # --- ENVIOS ---
+  /envios:
+    post:
+      tags: [Envíos]
+      summary: Registrar envío
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Envios_Request'
+      responses:
+        '201':
+          description: Envío registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envios_Response'
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /envios/{id}:
+    get:
+      tags: [Envíos]
+      summary: Detalle de envío
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Envío registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envios_Response'
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # --- NOTIFICACIONES ---
+  /notificaciones:
+    post:
+      tags: [Notificaciones]
+      summary: Enviar notificación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notificacion_Request'
+      responses:
+        '201':
+          description: Envío registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notificacion_Response'
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No esta autorizado
+        '404':
+          description: Elemento no encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /notificaciones/{id}:
+    get:
+      tags: [Notificaciones]
+      summary: Detalle de notificación
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '201':
+          description: Envío registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notificacion_Response'
+        '401':
+          description: No esta autorizado
+        '404':
+          description: No encontrado
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
